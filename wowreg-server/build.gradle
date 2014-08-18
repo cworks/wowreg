@@ -1,0 +1,7 @@
+description "wowreg-server - Wow Registration Server project"
+
+dependencies {
+    compile("com.sparkjava:spark-core:1.1.1")
+    compile("net-cworks:json:1.1")
+    compile(project(":wowreg-db"))
+}

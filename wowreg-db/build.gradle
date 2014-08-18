@@ -1,0 +1,53 @@
+apply plugin: "jooq"
+
+description "wowreg-db - Wow Registration database project"
+
+task cleanJooqGenerated(type: Delete) {
+    delete fileTree(dir: "src/main/java", include: '*')
+}
+
+
+clean.dependsOn(cleanJooqGenerated)
+
+
+buildscript {
+    dependencies {
+        classpath "mysql:mysql-connector-java:5.1.16"
+        classpath "org.jooq:jooq-codegen:3.4.1"
+        classpath "com.github.ben-manes:gradle-jooq-plugin:0.6"
+    }
+}
+
+dependencies {
+    compile("org.jooq:jooq:3.4.1")
+    compile("org.jooq:jooq-meta:3.4.1")
+    compile("org.jooq:jooq-codegen:3.4.1")
+    compile("mysql:mysql-connector-java:5.1.32")
+    compile("net-cworks:json:1.1")
+}
+
+
+compileJava.dependsOn(generateJooq)
+
+jooq {
+    jdbc {
+        url 'jdbc:mysql://localhost:3306'
+        driver 'com.mysql.jdbc.Driver'
+        user 'root'
+    }
+    generator {
+        database {
+            name 'org.jooq.util.mysql.MySQLDatabase'
+            inputSchema 'wowreg'
+            includes '.*'
+        }
+        generate {
+            daos true
+        }
+        target {
+            packageName "net.cworks.wowreg.db.schema"
+            directory "${project.name}/src/main/java"
+
+        }
+    }
+}

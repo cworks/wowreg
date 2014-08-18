@@ -1,0 +1,3 @@
+db.password=onefishtwofishredfishbluefish
+db.username=root
+db.url=jdbc:mysql://localhost:3306/wowreg

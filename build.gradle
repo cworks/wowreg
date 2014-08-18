@@ -1,0 +1,101 @@
+allprojects {
+
+    /*
+     * Default group of all projected managed by this build
+     */
+    group = 'net-cworks'
+
+    buildscript {
+        /*
+         * The repositories here are for resolving plugins required for the build
+         * not for resolving dependencies of the code, although the repositories
+         * are virtualy the same for both.
+         */
+        repositories {
+            mavenLocal()
+            mavenCentral()
+        }
+    }
+
+    /*
+     * Repositories that all projects managed by this use
+     */
+    repositories {
+        mavenLocal()
+        mavenCentral()        
+    }
+
+    /*
+     * default plugins for java, IntelliJ and Eclipse IDE support
+     */
+    apply plugin: "java"
+    apply plugin: "idea"
+    apply plugin: "maven"
+
+    /*
+     * Controlled versions of 3rd-party libraries
+     */
+    ext.commonsLoggingVersion = "1.1.3"
+    ext.log4jVersion          = "1.2.17"
+    ext.junitVersion          = "4.11"
+
+    /*
+     * Actual dependencies available by default to all projects managed by this build
+     */
+    dependencies {
+        compile("log4j:log4j:${log4jVersion}")
+        compile("commons-logging:commons-logging:${commonsLoggingVersion}")
+        testCompile("junit:junit:${junitVersion}")
+    }
+
+    /*
+     * source code compatibility levels
+     */
+    compileJava {
+        sourceCompatibility=1.7
+        targetCompatibility=1.7
+    }
+    compileTestJava {
+        sourceCompatibility=1.7
+        targetCompatibility=1.7
+    }
+
+
+    /**
+     * The option -Xlint can be used to enable or disable warnings.
+     * By saying -Xlint:<someOperation>, you enable all detailed warnings about <someOperation>
+     * By saying -Xlint:-<someOperation>, you disable all detailed warnings about <someOperation>
+     * see: http://argus.docs.oracle.com/javase/6/argus.docs/technotes/tools/windows/javac.html
+     *      http://argus.docs.oracle.com/javase/6/argus.docs/technotes/tools/solaris/javac.html
+     */
+    [compileJava, compileTestJava]*.options*.compilerArgs = [
+            "-Xlint:-serial",
+            "-Xlint:-varargs",
+            "-Xlint:-cast",
+            "-Xlint:-classfile",
+            "-Xlint:-dep-ann",
+            "-Xlint:-divzero",
+            "-Xlint:-empty",
+            "-Xlint:-finally",
+            "-Xlint:-overrides",
+            "-Xlint:-path",
+            "-Xlint:-processing",
+            "-Xlint:-static",
+            "-Xlint:-try",
+            "-Xlint:-deprecation",
+            "-Xlint:-options",
+            "-Xlint:-fallthrough",
+            "-Xlint:-rawtypes",
+            "-Xlint:-unchecked"
+    ]
+
+}
+
+task wrapper(type: Wrapper, description: 'Generates the gradle wrapper.') {
+    gradleVersion = '1.11'
+}
+
+
+
+
+

@@ -22,9 +22,11 @@ import static net.cworks.json.Json.Json;
 import static spark.Spark.get;
 import static spark.Spark.post;
 
-public class AttendeesApi {
+public class AttendeesApi extends CoreApi {
 
-    public static void attendeesApi() {
+    public void attendeesApi() {
+
+        final WowRegDb db = WowRegDb.db("root", "", "jdbc:mysql://localhost:3306/wowreg");
 
         post(new JsonResponseRoute("/wow/attendees") {
 
@@ -32,12 +34,21 @@ public class AttendeesApi {
             public Object handle(Request request, Response response) {
 
                 String body = request.body();
-                JsonObject attendeeData = Json().toObject(body);
-                attendeeData.getString("firstName");
+                int n = 0;
+                if(body.startsWith("{")) {
+                    n = db.createAttendee(Json().toObject(body));
+                } else if(body.startsWith("[")) {
+                    n = db.createAttendees(Json().toArray(body));
+                } else {
+                    return errorResponse(400,
+                        "Request body is malformed JSON string " + n + " attendees created.");
+                }
 
                 JsonObject responseData = Json().object()
-                    .object("request", attendeeData)
+                    .number("httpStatus", 200)
                     .string("datetime", ISODateParser.toString(new Date()))
+                    .object("response", Json().object().string("message", n + " attendees created.")
+                        .build())
                     .build();
 
                 return responseData;

@@ -11,7 +11,12 @@ package net.cworks.wowserver;
 public class WowServer {
 
     public static void main(String[] args) {
-
-        AttendeesApi.attendeesApi();
+        WowServer server = new WowServer();
+        server.start();
     }
+
+    public void start() {
+        new AttendeesApi().attendeesApi();
+    }
+
 }

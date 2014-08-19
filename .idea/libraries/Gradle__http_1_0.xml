@@ -1,9 +1,0 @@
-<component name="libraryTable">
-  <library name="Gradle: http-1.0">
-    <CLASSES>
-      <root url="jar://$MAVEN_REPOSITORY$/net-cworks/http/1.0/http-1.0.jar!/" />
-    </CLASSES>
-    <JAVADOC />
-    <SOURCES />
-  </library>
-</component>

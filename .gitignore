@@ -16,3 +16,4 @@ test-results
 test-tmp
 *.class
 mods
+wowreg-db/src/main/java/net/cworks/wowreg/db/schema

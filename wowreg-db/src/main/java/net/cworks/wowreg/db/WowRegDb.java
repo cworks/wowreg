@@ -25,6 +25,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Date;
+import java.util.Iterator;
 
 import static net.cworks.json.Json.Json;
 import static net.cworks.wowreg.db.schema.Tables.ATTENDEE;
@@ -49,10 +50,44 @@ public class WowRegDb {
             return new WowRegDb(context, connection);
         } catch (Exception ex) {
             throw new DbConnectException("Trouble connecting with: "
-                    + "username: " + username
-                    + "password: " + password
-                    + "url: " + url, ex);
+                + "username: " + username + " "
+                + "password: " + blank(password, '*') + " "
+                + "url: " + url, ex);
         }
+    }
+
+    /**
+     * Return a string of the same length as text but fill it with the filler character
+     * @param text
+     * @param filler
+     * @return
+     */
+    static String blank(String text, char filler) {
+        if(text == null || text.trim().length() == 0) {
+            return text;
+        }
+
+        char[] blank = new char[text.length()];
+        for(int i = 0; i < text.length(); i++) {
+            blank[i] = filler;
+        }
+
+        return new String(blank);
+    }
+
+    /**
+     * Create multiple attendee records
+     * @param attendees
+     * @return
+     */
+    public int createAttendees(JsonArray attendees) {
+        int n = 0;
+        Iterator it = attendees.iterator();
+        while(it.hasNext()) {
+            JsonObject attendee = (JsonObject)it.next();
+            n = n + createAttendee(attendee);
+        }
+        return n;
     }
 
     /**

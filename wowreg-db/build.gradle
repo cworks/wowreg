@@ -34,7 +34,7 @@ jooq {
         url 'jdbc:mysql://localhost:3306'
         driver 'com.mysql.jdbc.Driver'
         user 'root'
-        password 'onefishtwofishredfishbluefish'
+        password ''
     }
     generator {
         database {

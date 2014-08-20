@@ -8,15 +8,53 @@
  */
 package net.cworks.wowserver;
 
+import spark.Spark;
+
+import java.util.ArrayList;
+import java.util.List;
+
 public class WowServer {
 
-    public static void main(String[] args) {
-        WowServer server = new WowServer();
-        server.start();
+    /**
+     * list of exposed RESTful apis
+     */
+    private List<CoreApi> apis = null;
+    private String hostname;
+    private Integer port;
+
+    public WowServer() {
+        this("localhost", 4040);
+    }
+
+    public WowServer(String hostname, Integer port) {
+        this.hostname = hostname;
+        this.port = port;
+        this.apis = new ArrayList<CoreApi>();
+    }
+
+    WowServer deploy(CoreApi api) {
+        apis.add(api);
+        return this;
     }
 
     public void start() {
-        new AttendeesApi().attendeesApi();
+        Spark.setIpAddress(hostname);
+        Spark.setPort(port);
+        for(CoreApi api : apis) {
+            api.start();
+        }
+    }
+
+    /**
+     * Main entry point for wow registration service
+     * @param args
+     */
+    public static void main(String[] args) {
+        WowServer server = new WowServer();
+        server.deploy(new AttendeesApi())
+            .deploy(new RegistrationApi())
+            .deploy(new HealthCheckApi())
+            .start();
     }
 
 }

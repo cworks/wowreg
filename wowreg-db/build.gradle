@@ -6,9 +6,7 @@ task cleanJooqGenerated(type: Delete) {
     delete fileTree(dir: "src/main/java", include: '*')
 }
 
-
 clean.dependsOn(cleanJooqGenerated)
-
 
 buildscript {
     dependencies {
@@ -25,7 +23,6 @@ dependencies {
     compile("mysql:mysql-connector-java:5.1.32")
     compile("net-cworks:json:1.1")
 }
-
 
 compileJava.dependsOn(generateJooq)
 

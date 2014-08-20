@@ -24,11 +24,12 @@ import static spark.Spark.post;
 
 public class AttendeesApi extends CoreApi {
 
-    public void attendeesApi() {
+
+    public void start() {
 
         final WowRegDb db = WowRegDb.db("root", "", "jdbc:mysql://localhost:3306/wowreg");
 
-        post(new JsonResponseRoute("/wow/attendees") {
+        post(new JsonResponseRoute(apiRoot() + "/attendees") {
 
             @Override
             public Object handle(Request request, Response response) {
@@ -55,7 +56,7 @@ public class AttendeesApi extends CoreApi {
             }
         });
 
-        get(new JsonResponseRoute("/wow/attendees") {
+        get(new JsonResponseRoute(apiRoot() + "/attendees") {
             @Override
             public Object handle(Request request, Response response) {
 

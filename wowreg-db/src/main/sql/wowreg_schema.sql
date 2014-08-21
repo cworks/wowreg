@@ -4,6 +4,7 @@ DROP TABLE IF EXISTS `wowreg`.`events`;
 DROP TABLE IF EXISTS `wowreg`.`events_personnel`;
 DROP TABLE IF EXISTS `wowreg`.`event_prices`;
 DROP TABLE IF EXISTS `wowreg`.`attendee_to_attendee_group`;
+DROP TABLE IF EXISTS `wowreg`.`registered`;
 DROP TABLE IF EXISTS `wowreg`.`attendee_group`;
 DROP TABLE IF EXISTS `wowreg`.`attendee`;
 
@@ -27,31 +28,6 @@ CREATE TABLE `wowreg`.`attendee` (
     `date_added` DATETIME NULL DEFAULT NULL,
     PRIMARY KEY (`id`),
     UNIQUE INDEX `ATTENDEE_UNIQUE` USING BTREE (`last_name` ASC, `first_name` ASC, `email` ASC)
-);
-
-CREATE TABLE `attendee_cost` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `attendee_id` int(11) DEFAULT NULL,
-  `event_prices_id` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `id_UNIQUE` (`id`),
-  KEY `fk1_idx` (`attendee_id`),
-  KEY `fk11_idx` (`event_prices_id`),
-  CONSTRAINT `fk11` FOREIGN KEY (`event_prices_id`) REFERENCES `event_prices` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  CONSTRAINT `fk1` FOREIGN KEY (`attendee_id`) REFERENCES `attendee` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
-);
-
-CREATE TABLE `wowreg`.`attendee_cost` (
-    `id` INT NOT NULL AUTO_INCREMENT,
-    `attendee_id` INT NULL,
-    `cost` INT NULL DEFAULT 0,
-    `item` VARCHAR(64) NULL DEFAULT NULL,
-    `desc` VARCHAR(256) NULL DEFAULT NULL,
-    `quantity` INT NULL DEFAULT 0,
-    PRIMARY KEY (`id`),
-    UNIQUE INDEX `id_UNIQUE` (`id` ASC),
-    INDEX `fk1_idx` (`attendee_id` ASC),
-    CONSTRAINT `fk1` FOREIGN KEY (`attendee_id`) REFERENCES `wowreg`.`attendee` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 
 CREATE TABLE `wowreg`.`attendee_meta` (
@@ -112,6 +88,18 @@ CREATE TABLE `wowreg`.`event_prices` (
     PRIMARY KEY (`id`),
     UNIQUE INDEX `id_UNIQUE` (`id` ASC),
     UNIQUE INDEX `item_price` (`item` ASC, `category` ASC, `price` ASC)
+);
+
+CREATE TABLE `wowreg`.`attendee_cost` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `attendee_id` int(11) DEFAULT NULL,
+  `event_prices_id` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `id_UNIQUE` (`id`),
+  KEY `fk1_idx` (`attendee_id`),
+  KEY `fk11_idx` (`event_prices_id`),
+  CONSTRAINT `fk11` FOREIGN KEY (`event_prices_id`) REFERENCES `event_prices` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `fk1` FOREIGN KEY (`attendee_id`) REFERENCES `attendee` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 
 CREATE TABLE `wowreg`.`attendee_group` (

@@ -13,6 +13,8 @@ import net.cworks.json.JsonArray;
 import net.cworks.json.JsonObject;
 import net.cworks.wowreg.db.WowRegDb;
 
+import static net.cworks.json.Json.Json;
+
 final public class Registrar {
 
     private static final Registrar INSTANCE = new Registrar();
@@ -25,6 +27,38 @@ final public class Registrar {
 
     public int register(JsonObject attendee) {
         WowRegDb db = db();
+
+        // TODO validate attendee here...yeah right.
+
+        // create attendee records so we know who wants to attend
+        int n = db.createAttendee(attendee);
+        if(n != 1) {
+            throw new RuntimeException("TODO Change this to custom exception");
+        }
+
+        // create attendee cost records so we know how much the attendee owes
+        //"items" : [
+        //{ "item" : "shirt", "size" : "XL" },
+        //{ "item" : "donation", "amount" : 10000 }]
+        JsonArray items = attendee.getArray("items");
+        if(items != null && items.size() > 0) {
+            JsonArray eventPrices = db.retrieveEventPrices(items);
+            for (int i = 0; i < eventPrices.size(); i++) {
+                JsonObject eventPrice = eventPrices.get(i);
+                JsonObject attendeeCost = Json().object()
+                        .number("attendee_id", attendee.getNumber("id"))
+                        .number("event_prices_id", eventPrice.getNumber("id")).build();
+                db.createAttendeeCost(attendeeCost);
+            }
+        }
+        // create attendeeMeta record to persist special info such as the ageClass of attendee
+        String ageClass = attendee.getString("ageClass", "adult");
+        JsonObject attendeeMeta = Json().object()
+            .number("attendee_id", attendee.getNumber("id"))
+            .string("meta_key", "age_class")
+            .string("meta_value", ageClass)
+            .string("meta_type", "string").build();
+        db.createAttendeeMeta(attendeeMeta);
 
         close(db);
         return 0;

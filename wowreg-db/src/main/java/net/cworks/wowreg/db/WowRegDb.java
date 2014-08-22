@@ -12,6 +12,7 @@ package net.cworks.wowreg.db;
 import net.cworks.json.JsonArray;
 import net.cworks.json.JsonObject;
 import net.cworks.json.builder.JsonArrayBuilder;
+import net.cworks.json.builder.JsonObjectBuilder;
 import net.cworks.wowreg.ISODateParser;
 import org.jooq.DSLContext;
 import org.jooq.Record;
@@ -29,6 +30,7 @@ import java.util.Iterator;
 
 import static net.cworks.json.Json.Json;
 import static net.cworks.wowreg.db.schema.Tables.ATTENDEE;
+import static net.cworks.wowreg.db.schema.Tables.EVENT_PRICES;
 
 public class WowRegDb {
 
@@ -150,6 +152,31 @@ public class WowRegDb {
         return attendees(result);
     }
 
+    public JsonArray retrieveEventPrices(JsonArray items) {
+
+        JsonArray eventPrices = Json().array().build();
+        Iterator it = items.iterator();
+        while(it.hasNext()) {
+            JsonObject item = (JsonObject)it.next();
+            Result<Record> record = context.select()
+                .from(EVENT_PRICES)
+                .where(EVENT_PRICES.ITEM.eq(item.getString("item"))).fetch();
+            JsonObject eventPrice = eventPrice(record);
+            eventPrices.addObject(eventPrice);
+        }
+
+        return eventPrices;
+    }
+
+    public void createAttendeeCost(JsonObject attendeeCost) {
+
+    }
+
+    public void createAttendeeMeta(JsonObject attendeeMeta) {
+
+    }
+
+
     public void close() {
         if(connection != null) {
             try { connection.close(); } catch (SQLException ex) { }
@@ -191,4 +218,22 @@ public class WowRegDb {
 
         return builder.build();
     }
+
+    private JsonObject eventPrice(Result<Record> records) {
+        JsonObjectBuilder builder = Json().object();
+        JsonObject eventPrice = null;
+        for(Record record : records) {
+
+            eventPrice = builder.number("id", record.getValue(EVENT_PRICES.ID))
+                .string("item", record.getValue(EVENT_PRICES.ITEM))
+                .string("category", record.getValue(EVENT_PRICES.CATEGORY))
+                .string("description", record.getValue(EVENT_PRICES.DESC))
+                .number("price", record.getValue(EVENT_PRICES.PRICE)).build();
+
+            break; // just first eventPrice
+        }
+
+        return eventPrice;
+    }
+
 }

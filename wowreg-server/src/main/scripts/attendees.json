@@ -10,7 +10,7 @@
             "zip" : "60523",
             "email" : "ronald@mcdonalds.com",
             "phone" : "1-800-244-6227",
-            "type" : "adult",
+            "ageClass" : "adult",
             "items" : [
                 { "item" : "shirt", "size" : "XL" },
                 { "item" : "donation", "amount" : 10000 }]
@@ -24,7 +24,7 @@
             "zip" : "20500",
             "email" : "ronald@whitehouse.gov",
             "phone" : "202-456-2121",
-            "type" : "adult",
+            "ageClass" : "adult",
             "items" : [ { "item" : "shirt", "size" : "L" } ]
         },
         {
@@ -36,7 +36,7 @@
             "zip" : "50273",
             "email" : "johnw@alamo.com",
             "phone" : "515-462-1044",
-            "type" : "adult"
+            "ageClass" : "adult"
         },
         {
             "firstName" : "Bugs",
@@ -47,7 +47,7 @@
             "zip" : "90210",
             "email" : "bugs@looneytoones.com",
             "phone" : "1-800-123-4562",
-            "type" : "teen"
+            "ageClass" : "teen"
         }
     ]
 }

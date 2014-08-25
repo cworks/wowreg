@@ -13,6 +13,8 @@ import net.cworks.json.JsonArray;
 import net.cworks.json.JsonObject;
 import net.cworks.wowreg.db.WowRegDb;
 
+import java.util.Iterator;
+
 import static net.cworks.json.Json.Json;
 
 final public class Registrar {
@@ -25,50 +27,134 @@ final public class Registrar {
         return INSTANCE;
     }
 
-    public int register(JsonObject attendee) {
+    /**
+     * Register one attendee
+     * @param attendee
+     * @return the newly registered attendee as a JsonObject
+     */
+    public JsonObject register(JsonObject attendee) {
         WowRegDb db = db();
 
         // TODO validate attendee here...yeah right.
+        validateAttendee(attendee);
 
         // create attendee records so we know who wants to attend
-        int n = db.createAttendee(attendee);
-        if(n != 1) {
+        attendee = db.createAttendee(attendee);
+        if(attendee == null) {
             throw new RuntimeException("TODO Change this to custom exception");
         }
 
         // create attendee cost records so we know how much the attendee owes
-        //"items" : [
-        //{ "item" : "shirt", "size" : "XL" },
-        //{ "item" : "donation", "amount" : 10000 }]
         JsonArray items = attendee.getArray("items");
         if(items != null && items.size() > 0) {
             JsonArray eventPrices = db.retrieveEventPrices(items);
             for (int i = 0; i < eventPrices.size(); i++) {
                 JsonObject eventPrice = eventPrices.get(i);
                 JsonObject attendeeCost = Json().object()
-                        .number("attendee_id", attendee.getNumber("id"))
-                        .number("event_prices_id", eventPrice.getNumber("id")).build();
+                    .number("attendeeId", attendee.getNumber("id"))
+                    .number("eventPricesId", eventPrice.getNumber("id")).build();
                 db.createAttendeeCost(attendeeCost);
             }
         }
         // create attendeeMeta record to persist special info such as the ageClass of attendee
         String ageClass = attendee.getString("ageClass", "adult");
         JsonObject attendeeMeta = Json().object()
-            .number("attendee_id", attendee.getNumber("id"))
-            .string("meta_key", "age_class")
-            .string("meta_value", ageClass)
-            .string("meta_type", "string").build();
+            .number("attendeeId", attendee.getNumber("id"))
+            .string("metaKey", "age_class")
+            .string("metaValue", ageClass)
+            .string("metaType", "string").build();
         db.createAttendeeMeta(attendeeMeta);
 
         close(db);
-        return 0;
+
+        if(attendee.getInteger("id") == null) {
+            return null;
+        }
+        return attendee;
     }
 
+    /**
+     * Register a group of attendees - TODO need to compute and insert ATTENDEE.total_price
+     * @param attendees
+     * @return
+     */
     public int register(JsonArray attendees) {
         WowRegDb db = db();
+        int registrationCount = 0;
+        try {
 
-        close(db);
-        return 0;
+            //
+            // Handle registering the group and the group's point-of-contact
+            //
+            Iterator it = attendees.iterator();
+            boolean hasPoc = false;
+            JsonObject group = null;
+            while (it.hasNext()) {
+                JsonObject attendee = (JsonObject) it.next();
+                if (attendee.getBoolean("poc")) {
+                    // register this attendee and mark this attendee as a group point-of-contact
+                    if(register(attendee) == null) {
+                        throw new RuntimeException("Cannot create poc attendee");
+                    }
+                    registrationCount++;
+                    JsonObject attendeeGroup = Json().object()
+                        .number("pocId", attendee.getInteger("id"))
+                        .string("groupName", attendee.getString("lastName") + "_"
+                            + attendee.getString("firstName")).build();
+                    // create the group and set group's point-of-contact
+                    group = db.createAttendeeGroup(attendeeGroup);
+                    hasPoc = true;
+                    // actually place point-of-contact into group my creating this association
+                    JsonObject attendeeToAttendeeGroup = Json().object()
+                        .number("attendeeId", attendee.getInteger("id"))
+                        .number("groupId", group.getInteger("id")).build();
+                    // add registered attendee to the group
+                    db.createAttendeeToAttendeeGroup(attendeeToAttendeeGroup);
+
+                    break;
+                }
+            }
+
+            // if the group does not have a point-of-contact then we don't
+            // allow registration to continue.
+            if (!hasPoc) {
+                throw new RuntimeException("Group of Attendees does not " +
+                    "have a group point-of-contact");
+            }
+
+            //
+            // Now after group and point-of-contact has been created proceed with creating
+            // other attendees and placing them into group
+            //
+            it = attendees.iterator();
+            while(it.hasNext()) {
+                JsonObject attendee = (JsonObject)it.next();
+                if(attendee.getBoolean("poc", false)) {
+                    continue; // we've already inserted the group point-of-contact above
+                }
+                if(register(attendee) != null) {
+                    registrationCount++;
+                    JsonObject attendeeToAttendeeGroup = Json().object()
+                        .number("attendeeId", attendee.getInteger("id"))
+                        .number("groupId", group.getInteger("id")).build();
+                    // add registered attendee to the group
+                    db.createAttendeeToAttendeeGroup(attendeeToAttendeeGroup);
+                }
+            }
+
+        } finally {
+            close(db);
+        }
+
+        return registrationCount;
+    }
+
+    private void validateAttendee(JsonObject attendee) {
+
+        attendee.getString("firstName");
+        attendee.getString("lastName");
+        attendee.getBoolean("poc"); // optional
+
     }
 
     int recordCosts(JsonObject attendee) {

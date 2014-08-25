@@ -18,6 +18,7 @@ import spark.Request;
 import spark.Response;
 
 import java.util.Date;
+import java.util.Iterator;
 
 import static net.cworks.json.Json.Json;
 import static spark.Spark.post;
@@ -37,15 +38,19 @@ public class RegistrationApi extends CoreApi {
                 String body = request.body();
                 int n = 0;
                 if(body.startsWith("{")) {
-                    // registering one attendee
-                    n = Registrar.instance().register(Json().toObject(body));
-                } else if(body.startsWith("[")) {
-                    JsonArray attendees = Json().toArray(body);
+                    JsonArray attendees = Json().toObject(body).getArray("attendees");
                     if(attendees.size() > ATTENDEE_GROUP_LIMIT) {
                         return errorResponse(400, "attendee group cannot exceed "
                             + ATTENDEE_GROUP_LIMIT
                             + " attendees and this group has "
                             + attendees.size() + " attendees.");
+                    }
+                    // add the eventId for the event to each attendee
+                    Iterator it = attendees.iterator();
+                    JsonObject event = Json().object().number("eventId", 1).build();
+                    while(it.hasNext()) {
+                        JsonObject attendee = (JsonObject)it.next();
+                        attendee.merge(event);
                     }
                     // register several attendees
                     n = Registrar.instance().register(attendees);
@@ -58,7 +63,7 @@ public class RegistrationApi extends CoreApi {
                     .number("httpStatus", 200)
                     .string("datetime", ISODateParser.toString(new Date()))
                     .object("response", Json().object().string("message", n + " attendees created.")
-                        .build())
+                            .build())
                     .build();
 
                 return responseData;

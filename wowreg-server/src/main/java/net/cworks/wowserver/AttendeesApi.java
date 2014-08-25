@@ -36,20 +36,23 @@ public class AttendeesApi extends CoreApi {
 
                 String body = request.body();
                 int n = 0;
+                JsonArray attendees = Json().array().build();
                 if(body.startsWith("{")) {
-                    n = db.createAttendee(Json().toObject(body));
+                    JsonObject attendee = db.createAttendee(Json().toObject(body));
+                    attendees.add(attendee);
                 } else if(body.startsWith("[")) {
-                    n = db.createAttendees(Json().toArray(body));
+                    attendees = db.createAttendees(Json().toArray(body));
                 } else {
                     return errorResponse(400,
-                        "Request body is malformed JSON string " + n + " attendees created.");
+                        "Request body is malformed JSON string "
+                            + attendees.size() + " attendees created.");
                 }
 
                 JsonObject responseData = Json().object()
                     .number("httpStatus", 200)
                     .string("datetime", ISODateParser.toString(new Date()))
-                    .object("response", Json().object().string("message", n + " attendees created.")
-                        .build())
+                    .object("response", Json().object().string("message",
+                         attendees.size() + " attendees created.").build())
                     .build();
 
                 return responseData;

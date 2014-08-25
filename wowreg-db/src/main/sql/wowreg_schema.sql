@@ -11,7 +11,7 @@ DROP TABLE IF EXISTS `wowreg`.`attendee`;
 CREATE TABLE `wowreg`.`attendee` (
     `id` INT NOT NULL AUTO_INCREMENT,
     `registration_id` INT NULL DEFAULT NULL,
-    `event_id` INT NULL DEFAULT NULL,
+    `event_id` INT NULL DEFAULT 0,
     `last_name` VARCHAR(64) NULL DEFAULT NULL,
     `first_name` VARCHAR(64) NULL DEFAULT NULL,
     `address` VARCHAR(128) NULL DEFAULT NULL,
@@ -27,7 +27,7 @@ CREATE TABLE `wowreg`.`attendee` (
     `payment_date` DATETIME NULL DEFAULT NULL,
     `date_added` DATETIME NULL DEFAULT NULL,
     PRIMARY KEY (`id`),
-    UNIQUE INDEX `ATTENDEE_UNIQUE` USING BTREE (`last_name` ASC, `first_name` ASC, `email` ASC)
+    UNIQUE INDEX `ATTENDEE_UNIQUE` USING BTREE (`event_id` ASC, `last_name` ASC, `first_name` ASC, `email` ASC)
 );
 
 CREATE TABLE `wowreg`.`attendee_meta` (

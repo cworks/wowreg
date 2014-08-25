@@ -41,6 +41,7 @@ jooq {
         }
         generate {
             daos true
+            relations true
         }
         target {
             packageName "net.cworks.wowreg.db.schema"

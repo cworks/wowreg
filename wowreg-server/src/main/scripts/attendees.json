@@ -2,22 +2,22 @@
     "attendees" : [
         {
             "firstName" : "Ronald",
-            "lastName" : "McDonald",
+            "lastName" : "McDonald_13",
             "poc" : true,
             "address" : "2111 McDonald's Dr.",
             "city" : "Oak Brook",
             "state" : "IL",
             "zip" : "60523",
-            "email" : "ronald@mcdonalds.com",
+            "email" : "ronald@mcdonalds_13.com",
             "phone" : "1-800-244-6227",
             "ageClass" : "adult",
             "items" : [
-                { "item" : "shirt", "size" : "XL" },
-                { "item" : "donation", "amount" : 10000 }]
+                { "item" : "XL Shirt", "price" : 1000 },
+                { "item" : "$10 donation", "price" : 1000 }]
         },
         {
             "firstName" : "Ronald",
-            "lastName" : "Regan",
+            "lastName" : "Regan_13",
             "address" : "1600 Pennsylvania Ave NW",
             "city" : "Washington",
             "state" : "DC",
@@ -25,11 +25,11 @@
             "email" : "ronald@whitehouse.gov",
             "phone" : "202-456-2121",
             "ageClass" : "adult",
-            "items" : [ { "item" : "shirt", "size" : "L" } ]
+            "items" : [ { "item" : "L Shirt", "price" : 1200 } ]
         },
         {
             "firstName" : "John",
-            "lastName" : "Wayne",
+            "lastName" : "Wayne_13",
             "address" : "216 S. 2nd St.",
             "city" : "Winterset",
             "state" : "IA",
@@ -40,7 +40,7 @@
         },
         {
             "firstName" : "Bugs",
-            "lastName" : "Bunny",
+            "lastName" : "Bunny_13",
             "address" : "1 Looney Toones Way",
             "city" : "Los Angeles",
             "state" : "CA",

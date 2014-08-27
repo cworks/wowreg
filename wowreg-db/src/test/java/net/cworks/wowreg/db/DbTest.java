@@ -11,23 +11,14 @@ package net.cworks.wowreg.db;
 
 import net.cworks.json.JsonArray;
 import net.cworks.json.JsonObject;
-import org.jooq.DSLContext;
-import org.jooq.Record;
-import org.jooq.Result;
-import org.jooq.SQLDialect;
-import org.jooq.impl.DSL;
 import org.junit.Test;
 
 import java.io.File;
 import java.security.SecureRandom;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
 import java.util.Iterator;
 import java.util.Random;
 
 import static net.cworks.json.Json.Json;
-import static net.cworks.wowreg.db.schema.Tables.ATTENDEE;
 
 public class DbTest {
 
@@ -51,7 +42,6 @@ public class DbTest {
             System.out.println(Json().toJson(attendee));
         }
 
-        db.close();
     }
 
     @Test
@@ -84,7 +74,6 @@ public class DbTest {
             .string("phone", "915-867-5309")
             .number("totalPrice", 500 * 100).build();
         db.createAttendee(nacho);
-        db.close();
 
     }
 

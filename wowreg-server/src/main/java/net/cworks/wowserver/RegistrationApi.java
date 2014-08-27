@@ -10,14 +10,14 @@
 package net.cworks.wowserver;
 
 import net.cworks.json.JsonArray;
+import net.cworks.json.JsonElement;
 import net.cworks.json.JsonObject;
 import net.cworks.wowconf.Registrar;
-import net.cworks.wowreg.ISODateParser;
+import net.cworks.wowserver.ex.MalformedJsonRequest;
 import net.cworks.wowserver.json.JsonResponseRoute;
 import spark.Request;
 import spark.Response;
 
-import java.util.Date;
 import java.util.Iterator;
 
 import static net.cworks.json.Json.Json;
@@ -33,7 +33,7 @@ public class RegistrationApi extends CoreApi {
         post(new JsonResponseRoute(apiRoot() + "/register") {
 
             @Override
-            public Object handle(Request request, Response response) {
+            public JsonElement handleRequest(Request request, Response response) {
 
                 String body = request.body();
                 int n = 0;
@@ -55,16 +55,12 @@ public class RegistrationApi extends CoreApi {
                     // register several attendees
                     n = Registrar.instance().register(attendees);
                 } else {
-                    return errorResponse(400,
+                    throw new MalformedJsonRequest(200,
                         "Request body is malformed JSON string " + n + " attendees created.");
                 }
 
-                JsonObject responseData = Json().object()
-                    .number("httpStatus", 200)
-                    .string("datetime", ISODateParser.toString(new Date()))
-                    .object("response", Json().object().string("message", n + " attendees created.")
-                            .build())
-                    .build();
+                JsonObject responseData = responseBody(
+                    Json().object().string("message", n + " attendees created.").build());
 
                 return responseData;
             }

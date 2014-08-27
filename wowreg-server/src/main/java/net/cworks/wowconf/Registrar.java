@@ -190,6 +190,5 @@ final public class Registrar {
     }
 
     private void close(WowRegDb db) {
-        db.close();
     }
 }

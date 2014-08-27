@@ -9,7 +9,7 @@
  */
 package net.cworks.wowreg.db;
 
-public class AttendeeExistsException extends Exception {
+public class AttendeeExistsException extends RuntimeException {
 
     public AttendeeExistsException() {
         super();

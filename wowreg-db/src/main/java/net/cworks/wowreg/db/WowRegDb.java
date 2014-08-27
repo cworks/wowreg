@@ -14,6 +14,7 @@ import net.cworks.json.JsonObject;
 import net.cworks.json.builder.JsonArrayBuilder;
 import net.cworks.json.builder.JsonObjectBuilder;
 import net.cworks.wowreg.ISODateParser;
+import net.cworks.wowreg.db.conn.ConnPool;
 import org.jooq.Configuration;
 import org.jooq.DSLContext;
 import org.jooq.Record;
@@ -24,7 +25,7 @@ import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Date;
@@ -38,15 +39,23 @@ import static net.cworks.wowreg.db.schema.Tables.ATTENDEE_META;
 import static net.cworks.wowreg.db.schema.Tables.ATTENDEE_TO_ATTENDEE_GROUP;
 import static net.cworks.wowreg.db.schema.Tables.EVENT_PRICES;
 
-public class WowRegDb {
+public final class WowRegDb {
 
-    private DSLContext context;
+    private ConnPool pool = null;
 
-    private Connection connection;
+    private DSLContext context = null;
 
-    WowRegDb(DSLContext context, Connection connection) {
-        this.context = context;
-        this.connection = connection;
+    private WowRegDb(ConnPool pool) {
+        this.pool = pool;
+    }
+
+    private void initContext() {
+        try {
+            Connection connection = this.pool.connection();
+            context = DSL.using(connection, SQLDialect.MYSQL);
+        } catch(SQLException ex) {
+            throw new DbCreateException("could not initContext");
+        }
     }
 
     /**
@@ -60,9 +69,10 @@ public class WowRegDb {
 
         try {
             Class.forName("com.mysql.jdbc.Driver").newInstance();
-            Connection connection = DriverManager.getConnection(url, username, password);
-            DSLContext context = DSL.using(connection, SQLDialect.MYSQL);
-            return new WowRegDb(context, connection);
+            ConnPool pool = new ConnPool(url, username, password);
+            WowRegDb db = new WowRegDb(pool);
+            db.initContext();
+            return db;
         } catch (Exception ex) {
             throw new DbConnectException("Trouble connecting with: "
                 + "username: " + username + " "
@@ -106,6 +116,22 @@ public class WowRegDb {
         return list;
     }
 
+    private String INSERT_ATTENDEE_SQL = "INSERT INTO attendee (" +
+        "registration_id," +
+        "event_id," +
+        "last_name," +
+        "first_name," +
+        "address," +
+        "city," +
+        "state," +
+        "zip," +
+        "country," +
+        "email," +
+        "phone," +
+        "payment_status," +
+        "amount_paid," +
+        "total_price," +
+        "payment_date) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
     /**
      * Create one attendee record
      * @param attendee Attendee information in JSON format
@@ -115,60 +141,82 @@ public class WowRegDb {
 
         JsonObject insertedAttendee = context.transactionResult(
             new TransactionalCallable<JsonObject>() {
-            @Override
-            public JsonObject run(Configuration config) throws Exception {
+                @Override
+                public JsonObject run(Configuration config) throws Exception {
 
-                if(retrieveAttendee(attendee) != null) {
-                    // attendee already exists
-                    throw new AttendeeExistsException("attendee exists " + attendee.asString());
+                    if(retrieveAttendee(attendee) != null) {
+                        // attendee already exists
+                        throw new AttendeeExistsException("attendee exists " + attendee.asString());
+                    }
+
+                    int status = context.insertInto(ATTENDEE,
+                        ATTENDEE.REGISTRATION_ID,
+                        ATTENDEE.EVENT_ID,
+                        ATTENDEE.LAST_NAME,
+                        ATTENDEE.FIRST_NAME,
+                        ATTENDEE.ADDRESS,
+                        ATTENDEE.CITY,
+                        ATTENDEE.STATE,
+                        ATTENDEE.ZIP,
+                        ATTENDEE.COUNTRY,
+                        ATTENDEE.EMAIL,
+                        ATTENDEE.PHONE,
+                        ATTENDEE.PAYMENT_STATUS,
+                        ATTENDEE.TOTAL_PRICE,
+                        ATTENDEE.AMOUNT_PAID,
+                        ATTENDEE.DATE_ADDED).values(
+                        attendee.getInteger("registrationId"),
+                        attendee.getInteger("eventId"),
+                        attendee.getString("lastName"),
+                        attendee.getString("firstName"),
+                        attendee.getString("address"),
+                        attendee.getString("city"),
+                        attendee.getString("state"),
+                        attendee.getString("zip"),
+                        attendee.getString("country", "US"),
+                        attendee.getString("email"),
+                        attendee.getString("phone"),
+                        attendee.getString("paymentStatus", PaymentStatus.NOT_PAID.toString()),
+                        attendee.getInteger("totalPrice", 0),
+                        attendee.getInteger("amountPaid", 0),
+                        _nowTimestamp()
+                    ).execute();
+                    if (status != 1) {
+                        throw new DbCreateException("Error creating attendee record for: "
+                                + attendee.asString());
+                    }
+
+                    return retrieveAttendee(attendee);
                 }
-
-                int status = context.insertInto(ATTENDEE,
-                    ATTENDEE.REGISTRATION_ID,
-                    ATTENDEE.EVENT_ID,
-                    ATTENDEE.LAST_NAME,
-                    ATTENDEE.FIRST_NAME,
-                    ATTENDEE.ADDRESS,
-                    ATTENDEE.CITY,
-                    ATTENDEE.STATE,
-                    ATTENDEE.ZIP,
-                    ATTENDEE.COUNTRY,
-                    ATTENDEE.EMAIL,
-                    ATTENDEE.PHONE,
-                    ATTENDEE.PAYMENT_STATUS,
-                    ATTENDEE.TOTAL_PRICE,
-                    ATTENDEE.AMOUNT_PAID,
-                    ATTENDEE.DATE_ADDED).values(
-                    attendee.getInteger("registrationId"),
-                    attendee.getInteger("eventId"),
-                    attendee.getString("lastName"),
-                    attendee.getString("firstName"),
-                    attendee.getString("address"),
-                    attendee.getString("city"),
-                    attendee.getString("state"),
-                    attendee.getString("zip"),
-                    attendee.getString("country", "US"),
-                    attendee.getString("email"),
-                    attendee.getString("phone"),
-                    attendee.getString("paymentStatus", PaymentStatus.NOT_PAID.toString()),
-                    attendee.getInteger("totalPrice", 0),
-                    attendee.getInteger("amountPaid", 0),
-                    _nowTimestamp()
-                ).execute();
-                if (status != 1) {
-                    throw new DbCreateException("Error creating attendee record for: "
-                            + attendee.asString());
-                }
-
-                return retrieveAttendee(attendee);
-            }
-        });
+            });
 
         attendee.merge(insertedAttendee);
 
         return attendee;
     }
 
+    private static final String SELECT_ATTENDEE_SQL = "SELECT id," +
+            "registration_id," +
+            "event_id," +
+            "last_name," +
+            "first_name," +
+            "address," +
+            "city," +
+            "state," +
+            "zip," +
+            "country," +
+            "email," +
+            "phone," +
+            "payment_status," +
+            "amount_paid," +
+            "total_price," +
+            "payment_date," +
+            "date_added" +
+        "FROM attendee" +
+        "WHERE event_id = ?" +
+        "  AND last_name = ?" +
+        "  AND first_name = ?" +
+        "  AND email = ?";
     /**
      * Retrieve one attendee
      * @return
@@ -176,11 +224,11 @@ public class WowRegDb {
     public JsonObject retrieveAttendee(JsonObject attendee) {
 
         Record record = context.select()
-            .from(ATTENDEE)
-            .where(ATTENDEE.EVENT_ID.eq(attendee.getInteger("eventId")))
+                .from(ATTENDEE)
+                .where(ATTENDEE.EVENT_ID.eq(attendee.getInteger("eventId")))
                 .and(ATTENDEE.LAST_NAME.eq(attendee.getString("lastName")))
-                    .and(ATTENDEE.FIRST_NAME.eq(attendee.getString("firstName")))
-                        .and(ATTENDEE.EMAIL.eq(attendee.getString("email"))).fetchOne();
+                .and(ATTENDEE.FIRST_NAME.eq(attendee.getString("firstName")))
+                .and(ATTENDEE.EMAIL.eq(attendee.getString("email"))).fetchOne();
         if(record == null) {
             return null;
         }
@@ -188,15 +236,86 @@ public class WowRegDb {
     }
 
     /**
+     * Return a pending (i.e. not paid) attendee if one exists given an eventName and attendeeId
+     * @param eventName
+     * @param attendeeId
+     * @return
+     */
+    public JsonObject retrieveNotPaidAttendee(String eventName, Integer attendeeId) {
+
+        JsonObject attendee = null;
+        try {
+            String SELECT_NOTPAID_ATTENDEE_INFO = "SELECT" +
+                "    att.id," +
+                "    att.first_name," +
+                "    att.last_name," +
+                "    att.email," +
+                "    att.address," +
+                "    att.zip," +
+                "    att.city," +
+                "    att.state," +
+                "    att.zip," +
+                "    meta.meta_value AS age_class" +
+                "FROM attendee att," +
+                "    events evt," +
+                "    attendee_meta meta" +
+                "WHERE att.id = " + Integer.valueOf(attendeeId) +
+                "    AND evt.event_name = '" + eventName + "'" +
+                "    AND att.event_id = evt.id" +
+                "    AND att.id = meta.attendee_id" +
+                "    AND att.payment_status = 'NOT_PAID'";
+
+            Result<Record> result = context.fetch(SELECT_NOTPAID_ATTENDEE_INFO);
+            for(Record record : result) {
+                attendee = Json().object()
+                    .number("id", record.getValue("id", Integer.class))
+                    .string("firstName", record.getValue("first_name", String.class))
+                    .string("lastName", record.getValue("last_name", String.class))
+                    .string("email", record.getValue("email", String.class))
+                    .string("address", record.getValue("address", String.class))
+                    .string("zip", record.getValue("zip", String.class))
+                    .string("city", record.getValue("city", String.class))
+                    .string("state", record.getValue("state", String.class))
+                    .string("ageClass", record.getValue("age_class", String.class)).build();
+                break;
+            }
+        } catch(DataAccessException ex) {
+            throw new DbQueryException("Error retrieving pending attendee: " + attendeeId
+                + " for event: " + eventName, ex);
+        }
+
+        return attendee;
+    }
+
+    private static final String SELECT_ATTENDEES_SQL = "SELECT id" +
+            "registration_id," +
+            "event_id," +
+            "last_name," +
+            "first_name," +
+            "address," +
+            "city," +
+            "state," +
+            "zip," +
+            "country," +
+            "email," +
+            "phone," +
+            "payment_status," +
+            "amount_paid," +
+            "total_price," +
+            "payment_date," +
+            "date_added" +
+        "FROM attendee" +
+        "ORDER BY date_added DESC LIMIT ?";
+    /**
      * Retrieve the first 1000 attendees in descending dateAdded order
      * @return
      */
     public JsonArray retrieveAttendees() {
 
         Result<Record> result = context.select()
-            .from(ATTENDEE)
-            .orderBy(ATTENDEE.DATE_ADDED.desc().nullsFirst())
-            .limit(1000).fetch();
+                .from(ATTENDEE)
+                .orderBy(ATTENDEE.DATE_ADDED.desc().nullsFirst())
+                .limit(1000).fetch();
         return attendees(result);
     }
 
@@ -362,11 +481,58 @@ public class WowRegDb {
         }
     }
 
+    public JsonArray retrievePendingAttendee(String eventName, Integer attendeeId) {
+        JsonArray items = Json().array().build();
+        try {
+            String SELECT_ATTENDEE_COST = "SELECT " +
+                "att.id, " +
+                "att.first_name, " +
+                "att.last_name, " +
+                "att.email, " +
+                "att.address, " +
+                "att.zip, " +
+                "att.city, " +
+                "att.state, " +
+                "meta.meta_value AS age_class, " +
+                "prices.item, " +
+                "prices.category, " +
+                "prices.price, " +
+                "prices.desc " +
+                "FROM attendee att, attendee_cost cost, " +
+                    "events evt, event_prices prices, attendee_meta meta " +
+                "WHERE att.id =" + attendeeId +
+                "  AND evt.event_name ='" + eventName + "'" +
+                "  AND att.event_id = evt.id " +
+                "  AND att.id = cost.attendee_id " +
+                "  AND att.id = meta.attendee_id " +
+                "  AND cost.event_prices_id = prices.id " +
+                "ORDER BY prices.price DESC";
 
-    public void close() {
-        if(connection != null) {
-            try { connection.close(); } catch (SQLException ex) { }
+            Result<Record> result = context.fetch(SELECT_ATTENDEE_COST);
+            for(Record record : result) {
+                System.out.printf(record.toString());
+                JsonObject item = Json().object()
+                    .number("id", record.getValue("id", Integer.class))
+                    .string("firstName", record.getValue("first_name", String.class))
+                    .string("lastName", record.getValue("last_name", String.class))
+                    .string("email", record.getValue("email", String.class))
+                    .string("address", record.getValue("address", String.class))
+                    .string("zip", record.getValue("zip", String.class))
+                    .string("city", record.getValue("city", String.class))
+                    .string("state", record.getValue("state", String.class))
+                    .string("ageClass", record.getValue("age_class", String.class))
+                    .string("item", record.getValue("item", String.class))
+                    .string("category", record.getValue("category", String.class))
+                    .number("price", record.getValue("price", Integer.class))
+                    .string("desc", record.getValue("desc", String.class)).build();
+                items.addObject(item);
+            }
+        } catch(DataAccessException ex) {
+            throw new DbCreateException("Error retrieving attendee: " + attendeeId
+                + " for event: " + eventName, ex);
         }
+
+        return items;
     }
 
     private Timestamp _nowTimestamp() {
@@ -377,23 +543,23 @@ public class WowRegDb {
 
     private JsonObject attendee(Record record) {
         JsonObject attendee = Json().object()
-            .number("id", record.getValue(ATTENDEE.ID))
-            .number("registrationId", record.getValue(ATTENDEE.REGISTRATION_ID))
-            .number("eventId", record.getValue(ATTENDEE.EVENT_ID))
-            .string("lastName", record.getValue(ATTENDEE.LAST_NAME))
-            .string("firstName", record.getValue(ATTENDEE.FIRST_NAME))
-            .string("address", record.getValue(ATTENDEE.ADDRESS))
-            .string("city", record.getValue(ATTENDEE.CITY))
-            .string("state", record.getValue(ATTENDEE.STATE))
-            .string("zip", record.getValue(ATTENDEE.ZIP))
-            .string("country", record.getValue(ATTENDEE.COUNTRY))
-            .string("email", record.getValue(ATTENDEE.EMAIL))
-            .string("phone", record.getValue(ATTENDEE.PHONE))
-            .string("paymentStatus", record.getValue(ATTENDEE.PAYMENT_STATUS))
-            .number("amountPaid", record.getValue(ATTENDEE.AMOUNT_PAID))
-            .number("totalPrice", record.getValue(ATTENDEE.TOTAL_PRICE))
-            .string("paymentDate", ISODateParser.toString(
-                    record.getValue(ATTENDEE.PAYMENT_DATE))).build();
+                .number("id", record.getValue(ATTENDEE.ID))
+                .number("registrationId", record.getValue(ATTENDEE.REGISTRATION_ID))
+                .number("eventId", record.getValue(ATTENDEE.EVENT_ID))
+                .string("lastName", record.getValue(ATTENDEE.LAST_NAME))
+                .string("firstName", record.getValue(ATTENDEE.FIRST_NAME))
+                .string("address", record.getValue(ATTENDEE.ADDRESS))
+                .string("city", record.getValue(ATTENDEE.CITY))
+                .string("state", record.getValue(ATTENDEE.STATE))
+                .string("zip", record.getValue(ATTENDEE.ZIP))
+                .string("country", record.getValue(ATTENDEE.COUNTRY))
+                .string("email", record.getValue(ATTENDEE.EMAIL))
+                .string("phone", record.getValue(ATTENDEE.PHONE))
+                .string("paymentStatus", record.getValue(ATTENDEE.PAYMENT_STATUS))
+                .number("amountPaid", record.getValue(ATTENDEE.AMOUNT_PAID))
+                .number("totalPrice", record.getValue(ATTENDEE.TOTAL_PRICE))
+                .string("paymentDate", ISODateParser.toString(
+                        record.getValue(ATTENDEE.PAYMENT_DATE))).build();
         return attendee;
     }
 
@@ -439,5 +605,25 @@ public class WowRegDb {
         return eventPrice;
     }
 
-
+    private JsonObject rsToAttendee(ResultSet record) throws SQLException {
+        JsonObject attendee = Json().object()
+            .number("id", record.getInt("id"))
+            .number("registrationId", record.getInt("registration_id"))
+            .number("eventId", record.getInt("event_id"))
+            .string("lastName", record.getString("last_name"))
+            .string("firstName", record.getString("first_name"))
+            .string("address", record.getString("address"))
+            .string("city", record.getString("city"))
+            .string("state", record.getString("state"))
+            .string("zip", record.getString("zip"))
+            .string("country", record.getString("country"))
+            .string("email", record.getString("email"))
+            .string("phone", record.getString("phone"))
+            .string("paymentStatus", record.getString("payment_status"))
+            .number("amountPaid", record.getInt("amount_paid"))
+            .number("totalPrice", record.getInt("total_price"))
+            .string("paymentDate", ISODateParser.toString(
+                    record.getTimestamp("payment_date"))).build();
+        return attendee;
+    }
 }

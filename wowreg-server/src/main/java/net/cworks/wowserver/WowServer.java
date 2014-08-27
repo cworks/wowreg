@@ -53,6 +53,7 @@ public class WowServer {
         WowServer server = new WowServer();
         server.deploy(new AttendeesApi())
             .deploy(new RegistrationApi())
+            .deploy(new EventsApi())
             .deploy(new HealthCheckApi())
             .start();
     }

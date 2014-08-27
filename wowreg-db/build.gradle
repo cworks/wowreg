@@ -20,6 +20,7 @@ dependencies {
     compile("org.jooq:jooq:3.4.1")
     compile("org.jooq:jooq-meta:3.4.1")
     compile("org.jooq:jooq-codegen:3.4.1")
+    compile("commons-dbutils:commons-dbutils:1.6")
     compile("mysql:mysql-connector-java:5.1.32")
     compile("net-cworks:json:1.1")
 }

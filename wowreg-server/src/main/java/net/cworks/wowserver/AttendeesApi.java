@@ -9,14 +9,12 @@
 package net.cworks.wowserver;
 
 import net.cworks.json.JsonArray;
+import net.cworks.json.JsonElement;
 import net.cworks.json.JsonObject;
-import net.cworks.wowreg.ISODateParser;
 import net.cworks.wowreg.db.WowRegDb;
 import net.cworks.wowserver.json.JsonResponseRoute;
 import spark.Request;
 import spark.Response;
-
-import java.util.Date;
 
 import static net.cworks.json.Json.Json;
 import static spark.Spark.get;
@@ -32,7 +30,7 @@ public class AttendeesApi extends CoreApi {
         post(new JsonResponseRoute(apiRoot() + "/attendees") {
 
             @Override
-            public Object handle(Request request, Response response) {
+            public JsonElement handleRequest(Request request, Response response) {
 
                 String body = request.body();
                 int n = 0;
@@ -48,12 +46,8 @@ public class AttendeesApi extends CoreApi {
                             + attendees.size() + " attendees created.");
                 }
 
-                JsonObject responseData = Json().object()
-                    .number("httpStatus", 200)
-                    .string("datetime", ISODateParser.toString(new Date()))
-                    .object("response", Json().object().string("message",
-                         attendees.size() + " attendees created.").build())
-                    .build();
+                JsonObject responseData = responseBody(
+                        Json().object().string("message", n + " attendees created.").build());
 
                 return responseData;
             }
@@ -61,7 +55,7 @@ public class AttendeesApi extends CoreApi {
 
         get(new JsonResponseRoute(apiRoot() + "/attendees") {
             @Override
-            public Object handle(Request request, Response response) {
+            public JsonElement handleRequest(Request request, Response response) {
 
                 WowRegDb db = WowRegDb.db("root", "", "jdbc:mysql://localhost:3306/wowreg");
                 JsonArray attendees = db.retrieveAttendees();
@@ -69,6 +63,25 @@ public class AttendeesApi extends CoreApi {
                 return attendees;
             }
         });
+
+        get(new JsonResponseRoute(apiRoot() + "/attendees/:attendeeId") {
+            @Override
+            public JsonElement handleRequest(Request request, Response response) {
+
+
+
+                return null;
+            }
+        });
+
+        get(new JsonResponseRoute(apiRoot() + "/attendees/:eventId/:groupId") {
+            @Override
+            public JsonElement handleRequest(Request request, Response response) {
+                return null;
+            }
+        });
+
+
 
     }
 

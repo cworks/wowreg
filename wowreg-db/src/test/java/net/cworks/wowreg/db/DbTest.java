@@ -11,6 +11,7 @@ package net.cworks.wowreg.db;
 
 import net.cworks.json.JsonArray;
 import net.cworks.json.JsonObject;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.File;
@@ -74,6 +75,57 @@ public class DbTest {
             .string("phone", "915-867-5309")
             .number("totalPrice", 500 * 100).build();
         db.createAttendee(nacho);
+
+    }
+
+    @Test
+    public void updateAttendee() {
+        if(!isDbReady()) {
+            return;
+        }
+
+        JsonObject config = dbConfig();
+        String username = config.getString("db.username");
+        String password = config.getString("db.password");
+        String url = config.getString("db.url");
+
+        Random random = new SecureRandom();
+        Integer key = random.nextInt((1000000 - 1) + 1) + 1;
+
+        WowRegDb db = WowRegDb.db(username, password, url);
+
+        JsonObject attendee = Json().object().number("registrationId", 100)
+                .number("eventId", 1000)
+                .string("lastName", "Man_" + key)
+                .string("firstName", "Update_" + key)
+                .string("address", "123 Sesame St.")
+                .string("city", "New York")
+                .string("state", "NY")
+                .string("zip", "10001")
+                .string("country", "US")
+                .string("email", "update_" + key + "@man.com")
+                .string("phone", "646-123-4567")
+                .number("totalPrice", 500 * 100).build();
+        attendee = db.createAttendee(attendee);
+        attendee.setString("firstName", "John_" + key)
+            .setString("lastName", "Big_" + key)
+            .setString("address", "456 Sesame St.")
+            .setString("city", "Brooklyn")
+            .setString("zip", "10005")
+            .setString("email", "john_" + key + "@big.com")
+            .setNumber("totalPrice", 0);
+        JsonObject updatedAttendee = db.updateAttendee(attendee);
+        JsonObject attendee2 = db.retrieveAttendee(updatedAttendee);
+        Assert.assertEquals("John_" + key, attendee2.getString("firstName"));
+        Assert.assertEquals("Big_" + key, attendee2.getString("lastName"));
+        Assert.assertEquals("456 Sesame St.", attendee2.getString("address"));
+        Assert.assertEquals("Brooklyn", attendee2.getString("city"));
+        Assert.assertEquals("10005", attendee2.getString("zip"));
+        Assert.assertEquals("john_" + key + "@big.com", attendee2.getString("email"));
+        Assert.assertEquals("646-123-4567", attendee2.getString("phone"));
+        Assert.assertEquals(500 * 100, attendee2.getNumber("totalPrice"));
+        Assert.assertEquals(1000, attendee2.getNumber("eventId"));
+        Assert.assertEquals(100, attendee2.getNumber("registrationId"));
 
     }
 

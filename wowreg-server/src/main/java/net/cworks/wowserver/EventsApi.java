@@ -45,7 +45,7 @@ public class EventsApi extends CoreApi {
          *            "price":1000,
          *            "desc":"$10 donation"}]}}
          */
-        get(new JsonResponseRoute(apiRoot() + "/events/:eventName/attendee/:attendeeId/pending") {
+        get(new JsonResponseRoute(apiRoot() + "/events/:eventName/attendee/:attendeeId") {
             @Override
             public JsonElement handleRequest(Request request, Response response) {
 

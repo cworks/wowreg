@@ -139,7 +139,7 @@ public final class WowRegDb {
      */
     public JsonObject createAttendee(final JsonObject attendee) {
 
-        JsonObject insertedAttendee = context.transactionResult(
+        JsonObject att = context.transactionResult(
             new TransactionalCallable<JsonObject>() {
                 @Override
                 public JsonObject run(Configuration config) throws Exception {
@@ -186,37 +186,94 @@ public final class WowRegDb {
                                 + attendee.asString());
                     }
 
-                    return retrieveAttendee(attendee);
+                    return attendee;
                 }
             });
 
-        attendee.merge(insertedAttendee);
+        attendee.merge(retrieveAttendee(att));
 
         return attendee;
     }
 
-    private static final String SELECT_ATTENDEE_SQL = "SELECT id," +
-            "registration_id," +
-            "event_id," +
-            "last_name," +
-            "first_name," +
-            "address," +
-            "city," +
-            "state," +
-            "zip," +
-            "country," +
-            "email," +
-            "phone," +
-            "payment_status," +
-            "amount_paid," +
-            "total_price," +
-            "payment_date," +
-            "date_added" +
-        "FROM attendee" +
-        "WHERE event_id = ?" +
-        "  AND last_name = ?" +
-        "  AND first_name = ?" +
-        "  AND email = ?";
+    /**
+     * Update certain attendee fields of an Attendee record.  This update will not
+     * update id, registrationId, eventId, paymentStatus, amountPaid, totalPrice or
+     * dateAdded.  All other fields however can be updated through this method.
+     *
+     * @param attendee
+     * @throws net.cworks.wowreg.db.DbUpdateException if the update goes wrong
+     * @return the updated attendee
+     */
+    public JsonObject updateAttendee(final JsonObject attendee) {
+
+        if(attendee == null) {
+            throw new IllegalArgumentException("Can't update a null attendee");
+        }
+        if(attendee.getInteger("id") == null) {
+            throw new DbUpdateException("Can't update an attendee that doesn't have an id");
+        }
+        JsonObject att = context.transactionResult(
+            new TransactionalCallable<JsonObject>() {
+            @Override
+            public JsonObject run(Configuration config) throws Exception {
+                JsonObject targetAttendee = retrieveAttendee(attendee.getInteger("id"));
+                if(targetAttendee == null) {
+                    throw new DbUpdateException("Can't update a non-existing attendee: "
+                        + attendee.getInteger("id"));
+                }
+                // remove fields we're not gonna update through this method
+                attendee.removeField("id");
+                attendee.removeField("registrationId");
+                attendee.removeField("registration_id");
+                attendee.removeField("eventId");
+                attendee.removeField("event_id");
+                attendee.removeField("paymentStatus");
+                attendee.removeField("payment_status");
+                attendee.removeField("amountPaid");
+                attendee.removeField("amount_paid");
+                attendee.removeField("totalPrice");
+                attendee.removeField("total_price");
+                attendee.removeField("dateAdded");
+                attendee.removeField("date_added");
+                targetAttendee.merge(attendee);
+                int status = context.update(ATTENDEE)
+                    .set(ATTENDEE.LAST_NAME, targetAttendee.getString("lastName"))
+                    .set(ATTENDEE.FIRST_NAME, targetAttendee.getString("firstName"))
+                    .set(ATTENDEE.ADDRESS, targetAttendee.getString("address"))
+                    .set(ATTENDEE.CITY, targetAttendee.getString("city"))
+                    .set(ATTENDEE.STATE, targetAttendee.getString("state"))
+                    .set(ATTENDEE.ZIP, targetAttendee.getString("zip"))
+                    .set(ATTENDEE.COUNTRY, targetAttendee.getString("country"))
+                    .set(ATTENDEE.EMAIL, targetAttendee.getString("email"))
+                    .set(ATTENDEE.PHONE, targetAttendee.getString("phone"))
+                    .where(ATTENDEE.ID.eq(targetAttendee.getInteger("id"))).execute();
+                if(status != 1) {
+                    throw new DbUpdateException("Error updating attendee record for: "
+                        + targetAttendee.asString());
+                }
+
+                return targetAttendee;
+            }
+        });
+
+        return retrieveAttendee(att.getInteger("id"));
+    }
+
+    /**
+     * Retrieve an attendee by id
+     * @param id
+     * @return
+     */
+    public JsonObject retrieveAttendee(Integer id) {
+        Record record = context.select()
+                .from(ATTENDEE)
+                .where(ATTENDEE.ID.eq(id)).fetchOne();
+        if(record == null) {
+            return null;
+        }
+        return attendee(record);
+    }
+
     /**
      * Retrieve one attendee
      * @return
@@ -224,11 +281,11 @@ public final class WowRegDb {
     public JsonObject retrieveAttendee(JsonObject attendee) {
 
         Record record = context.select()
-                .from(ATTENDEE)
-                .where(ATTENDEE.EVENT_ID.eq(attendee.getInteger("eventId")))
-                .and(ATTENDEE.LAST_NAME.eq(attendee.getString("lastName")))
-                .and(ATTENDEE.FIRST_NAME.eq(attendee.getString("firstName")))
-                .and(ATTENDEE.EMAIL.eq(attendee.getString("email"))).fetchOne();
+            .from(ATTENDEE)
+            .where(ATTENDEE.EVENT_ID.eq(attendee.getInteger("eventId")))
+            .and(ATTENDEE.LAST_NAME.eq(attendee.getString("lastName")))
+            .and(ATTENDEE.FIRST_NAME.eq(attendee.getString("firstName")))
+            .and(ATTENDEE.EMAIL.eq(attendee.getString("email"))).fetchOne();
         if(record == null) {
             return null;
         }
@@ -364,6 +421,16 @@ public final class WowRegDb {
     }
 
     /**
+     * Pull back the set of attendeeCost records for an attendee
+     * @param attendee
+     * @return
+     */
+    public JsonObject retrieveAttendeeCost(JsonObject attendee) {
+
+        return null;
+    }
+
+    /**
      * Create a new attendeeMeta record and return the new attendeeMeta.id
      * @param attendeeMeta
      * @return attendee metadata as a JsonObject
@@ -396,6 +463,51 @@ public final class WowRegDb {
     }
 
     /**
+     * Update attendeeMeta record give an existing meta record
+     * @param meta
+     * @return
+     */
+    public JsonObject updateAttendeeMeta(final JsonObject meta) {
+        if(meta == null) {
+            throw new IllegalArgumentException("Can't update a null attendeeMeta argument!");
+        }
+        if(meta.getInteger("id") == null) {
+            throw new DbUpdateException(
+                "Can't update an attendeeMeta record that doesn't have an id");
+        }
+        JsonObject metadata = context.transactionResult(
+            new TransactionalCallable<JsonObject>() {
+                @Override
+                public JsonObject run(Configuration config) throws Exception {
+                    JsonObject targetMeta = retrieveAttendeeMeta(meta.getInteger("id"));
+                    if(targetMeta == null) {
+                        throw new DbUpdateException("Can't update a non-existing " +
+                            "attendeeMeta record: " + meta.getInteger("id"));
+                    }
+                    // remove fields we're not gonna update through this method
+                    meta.removeField("id");
+                    meta.removeField("attendeeId");
+                    meta.removeField("attendee_id");
+                    meta.removeField("dateAdded");
+                    meta.removeField("date_added");
+                    targetMeta.merge(meta);
+                    int status = context.update(ATTENDEE_META)
+                        .set(ATTENDEE_META.META_KEY, targetMeta.getString("metaKey"))
+                        .set(ATTENDEE_META.META_VALUE, targetMeta.getString("metaValue"))
+                        .set(ATTENDEE_META.META_TYPE, targetMeta.getString("metaType")).execute();
+                    if(status != 1) {
+                        throw new DbUpdateException("Error updating attendeeMeta record for: "
+                            + targetMeta.asString());
+                    }
+
+                    return targetMeta;
+                }
+            });
+
+        return retrieveAttendeeMeta(metadata.getInteger("id"));
+    }
+
+    /**
      * Retrieve an attendees list of associated attendeeMeta
      * @param attendee
      * @return
@@ -408,6 +520,20 @@ public final class WowRegDb {
             .orderBy(ATTENDEE_META.ID.desc())
             .fetch();
         return attendeeMetas(result);
+    }
+
+    /**
+     * Retrieve one attendeeMeta record given the record id
+     * @param id
+     * @return
+     */
+    public JsonObject retrieveAttendeeMeta(Integer id) {
+
+        Result<Record> result = context.select()
+                .from(ATTENDEE_META)
+                .where(ATTENDEE_META.ID.eq(id))
+                .fetch();
+        return attendeeMetas(result).get(0);
     }
 
     /**
@@ -626,4 +752,7 @@ public final class WowRegDb {
                     record.getTimestamp("payment_date"))).build();
         return attendee;
     }
+
+
+
 }

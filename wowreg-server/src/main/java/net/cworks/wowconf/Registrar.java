@@ -149,6 +149,22 @@ final public class Registrar {
         return registrationCount;
     }
 
+
+    public JsonObject registrationUpdate(JsonObject attendee) {
+
+        // validate attendee
+        validateAttendee(attendee);
+
+        WowRegDb db = db();
+        JsonObject targetAttendee = db.retrieveAttendee(attendee);
+        JsonObject targetAttendeeCost = db.retrieveAttendeeCost(attendee);
+        JsonArray targetAttendeeMeta = db.retrieveAttendeeMeta(attendee);
+        db.updateAttendee(attendee);
+
+        return null;
+
+    }
+
     private void validateAttendee(JsonObject attendee) {
 
         attendee.getString("firstName");

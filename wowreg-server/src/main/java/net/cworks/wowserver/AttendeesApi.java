@@ -25,7 +25,7 @@ public class AttendeesApi extends CoreApi {
 
     public void start() {
 
-        final WowRegDb db = WowRegDb.db("root", "", "jdbc:mysql://localhost:3306/wowreg");
+        final WowRegDb db = WowRegDb.db();
 
         post(new JsonResponseRoute(apiRoot() + "/attendees") {
 
@@ -57,7 +57,7 @@ public class AttendeesApi extends CoreApi {
             @Override
             public JsonElement handleRequest(Request request, Response response) {
 
-                WowRegDb db = WowRegDb.db("root", "", "jdbc:mysql://localhost:3306/wowreg");
+                WowRegDb db = WowRegDb.db();
                 JsonArray attendees = db.retrieveAttendees();
 
                 return attendees;

@@ -62,7 +62,7 @@ public class DbTest {
 
         WowRegDb db = WowRegDb.db(username, password, url);
 
-        JsonObject nacho = Json().object().number("registrationId", 100)
+        JsonObject nacho = Json().object().string("registrationId", "100")
             .number("eventId", 1000)
             .string("lastName", "Martin_" + key)
             .string("firstName", "Nacho_" + key)
@@ -72,8 +72,7 @@ public class DbTest {
             .string("zip", "79911")
             .string("country", "US")
             .string("email", "nacho_" + key + "@libre.com")
-            .string("phone", "915-867-5309")
-            .number("totalPrice", 500 * 100).build();
+            .string("phone", "915-867-5309").build();
         db.createAttendee(nacho);
 
     }
@@ -94,7 +93,7 @@ public class DbTest {
 
         WowRegDb db = WowRegDb.db(username, password, url);
 
-        JsonObject attendee = Json().object().number("registrationId", 100)
+        JsonObject attendee = Json().object().string("registrationId", "100")
                 .number("eventId", 1000)
                 .string("lastName", "Man_" + key)
                 .string("firstName", "Update_" + key)
@@ -112,8 +111,7 @@ public class DbTest {
             .setString("address", "456 Sesame St.")
             .setString("city", "Brooklyn")
             .setString("zip", "10005")
-            .setString("email", "john_" + key + "@big.com")
-            .setNumber("totalPrice", 0);
+            .setString("email", "john_" + key + "@big.com");
         JsonObject updatedAttendee = db.updateAttendee(attendee);
         JsonObject attendee2 = db.retrieveAttendee(updatedAttendee);
         Assert.assertEquals("John_" + key, attendee2.getString("firstName"));
@@ -123,9 +121,8 @@ public class DbTest {
         Assert.assertEquals("10005", attendee2.getString("zip"));
         Assert.assertEquals("john_" + key + "@big.com", attendee2.getString("email"));
         Assert.assertEquals("646-123-4567", attendee2.getString("phone"));
-        Assert.assertEquals(500 * 100, attendee2.getNumber("totalPrice"));
         Assert.assertEquals(1000, attendee2.getNumber("eventId"));
-        Assert.assertEquals(100, attendee2.getNumber("registrationId"));
+        Assert.assertEquals("100", attendee2.getString("registrationId"));
 
     }
 

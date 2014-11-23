@@ -17,15 +17,18 @@ import org.junit.Test;
 import java.io.IOException;
 
 import static net.cworks.json.Json.Json;
-import static net.cworks.wowserver.rand.RandomHelper.randomFirstName;
-import static net.cworks.wowserver.rand.RandomHelper.randomIntegerBetween;
-import static net.cworks.wowserver.rand.RandomHelper.randomLastName;
-import static net.cworks.wowserver.rand.RandomHelper.randomPhoneNumber;
+import static net.cworks.wowserver.util.RandomHelper.randomFirstName;
+import static net.cworks.wowserver.util.RandomHelper.randomIntegerBetween;
+import static net.cworks.wowserver.util.RandomHelper.randomLastName;
+import static net.cworks.wowserver.util.RandomHelper.randomPhoneNumber;
 
 public class AttendeesApiTest {
 
     @BeforeClass
     public static void setupClass() {
+        System.setProperty("db.un", "root");
+        System.setProperty("db.pw", "");
+        System.setProperty("db.url", "jdbc:mysql://localhost:3306/wowreg");
         WowServer server = new WowServer();
         server.main(null);
     }

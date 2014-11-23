@@ -11,6 +11,7 @@
 package net.cworks.wowserver;
 
 import net.cworks.json.JsonObject;
+
 import static net.cworks.json.Json.Json;
 
 public abstract class CoreApi {

@@ -1,20 +1,23 @@
-apply plugin: "jooq"
-
 description "wowreg-db - Wow Registration database project"
 
-task cleanJooqGenerated(type: Delete) {
-    delete fileTree(dir: "src/main/java", include: '*')
-}
-
-clean.dependsOn(cleanJooqGenerated)
-
 buildscript {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+    }
     dependencies {
         classpath "mysql:mysql-connector-java:5.1.16"
         classpath "org.jooq:jooq-codegen:3.4.1"
-        classpath "com.github.ben-manes:gradle-jooq-plugin:0.6"
     }
 }
+
+// ----------------------------------------------------------------------
+// These imports are needed to generate jooq code without using a plugin
+// I've opted for this method over a plugin because jooq gradle plugins
+// seem to be rather flaky at this point in time (3Q 2014)
+// ----------------------------------------------------------------------
+import javax.xml.bind.JAXB
+import org.jooq.util.GenerationTool
 
 dependencies {
     compile("org.jooq:jooq:3.4.1")
@@ -25,29 +28,40 @@ dependencies {
     compile("net-cworks:json:1.1")
 }
 
-compileJava.dependsOn(generateJooq)
-
-jooq {
-    jdbc {
-        url 'jdbc:mysql://localhost:3306'
-        driver 'com.mysql.jdbc.Driver'
-        user 'root'
-        password ''
+// ---------------------------------------------------
+// Use the groovy xml builder to generate jooq config
+// ---------------------------------------------------
+def writer = new StringWriter()
+def xml = new groovy.xml.MarkupBuilder(writer)
+        .configuration('xmlns': 'http://www.jooq.org/xsd/jooq-codegen-3.4.0.xsd') {
+    jdbc() {
+        driver('com.mysql.jdbc.Driver')
+        url('jdbc:mysql://localhost:3306')
+        user('root')
+        password('')
     }
-    generator {
-        database {
-            name 'org.jooq.util.mysql.MySQLDatabase'
-            inputSchema 'wowreg'
-            includes '.*'
+    generator() {
+        database() {
+            name('org.jooq.util.mysql.MySQLDatabase')
+            inputSchema('wowreg')
+            includes('.*')
         }
-        generate {
-            daos true
-            relations true
+        generate() {
+            daos(true)
+            relations(true)
         }
-        target {
-            packageName "net.cworks.wowreg.db.schema"
-            directory "${project.name}/src/main/java"
-
+        target() {
+            packageName("net.cworks.wowreg.db.schema")
+            directory("${project.name}/src/main/java")
         }
     }
 }
+
+// ------------------------
+// Run jooq code generator
+// ------------------------
+GenerationTool.main(
+    JAXB.unmarshal(new StringReader(writer.toString()), org.jooq.util.jaxb.Configuration.class)
+)
+
+

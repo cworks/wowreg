@@ -33,7 +33,7 @@ final public class EventCoordinator {
      * @return
      */
     public JsonObject pendingAttendee(String eventName, String attendeeId) {
-        WowRegDb db = WowRegDb.db("root", "", "jdbc:mysql://localhost:3306/wowreg");
+        WowRegDb db = WowRegDb.db();
 
         JsonArray pendingInfo = db.retrievePendingAttendee(eventName, Integer.valueOf(attendeeId));
         JsonObjectBuilder builder = Json().object();
@@ -69,5 +69,25 @@ final public class EventCoordinator {
         builder.number("total", total);
 
         return builder.build();
+    }
+
+    /**
+     * Return the Wow Event Coordinator
+     * @return
+     */
+    public JsonObject getWowCoordinator() {
+
+        final WowRegDb db = WowRegDb.db();
+
+        JsonObject wowCoordinator = db.retrieveEventCoordinator();
+        if(wowCoordinator == null) {
+            wowCoordinator.setString("firstName", "Brooke")
+                .setString("lastName", "Martin")
+                .setString("email", "wowemail@gmail.com")
+                .setString("phone", "817-111-2222")
+                .setString("role", "Registration Coordinator");
+        }
+
+        return wowCoordinator;
     }
 }

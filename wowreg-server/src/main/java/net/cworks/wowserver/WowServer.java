@@ -8,6 +8,7 @@
  */
 package net.cworks.wowserver;
 
+import net.cworks.wowserver.util.RandomHelper;
 import spark.Spark;
 
 import java.util.ArrayList;
@@ -30,6 +31,8 @@ public class WowServer {
         this.hostname = hostname;
         this.port = port;
         this.apis = new ArrayList<CoreApi>();
+        // set secretKey valid for length of JVM process, used for simple encryption
+        System.setProperty("wow.instanceId", RandomHelper.randomFirstName());
     }
 
     WowServer deploy(CoreApi api) {
@@ -55,6 +58,7 @@ public class WowServer {
             .deploy(new RegistrationApi())
             .deploy(new EventsApi())
             .deploy(new HealthCheckApi())
+            .deploy(new PaymentApi())
             .start();
     }
 

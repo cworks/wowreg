@@ -119,6 +119,17 @@ public class ISODateParser {
         return result;
     }
 
+    public static String toSimpleString(Date date) {
+        if(date == null) {
+            return null;
+        }
+
+        SimpleDateFormat df = new SimpleDateFormat("MM-dd-yyyy h:mm a");
+        String output = df.format(date);
+
+        return output;
+    }
+
 }
 
 

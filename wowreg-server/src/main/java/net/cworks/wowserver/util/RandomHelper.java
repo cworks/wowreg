@@ -6,13 +6,13 @@
  * Created: 8/18/2014 4:01 PM
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  */
-package net.cworks.wowserver.rand;
+package net.cworks.wowserver.util;
+
+import org.apache.commons.lang.RandomStringUtils;
 
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Random;
-
-import org.apache.commons.lang.RandomStringUtils;
 
 public final class RandomHelper {
 

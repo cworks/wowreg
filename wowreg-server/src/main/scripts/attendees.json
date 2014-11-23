@@ -2,13 +2,13 @@
     "attendees" : [
         {
             "firstName" : "Ronald",
-            "lastName" : "McDonald_15",
+            "lastName" : "McDonald_100",
             "poc" : true,
             "address" : "2111 McDonald's Dr.",
             "city" : "Oak Brook",
             "state" : "IL",
             "zip" : "60523",
-            "email" : "ronald@mcdonalds_15.com",
+            "email" : "ronald@mcdonalds_100.com",
             "phone" : "1-800-244-6227",
             "ageClass" : "adult",
             "items" : [
@@ -17,7 +17,7 @@
         },
         {
             "firstName" : "Ronald",
-            "lastName" : "Regan_15",
+            "lastName" : "Regan_100",
             "address" : "1600 Pennsylvania Ave NW",
             "city" : "Washington",
             "state" : "DC",
@@ -29,7 +29,7 @@
         },
         {
             "firstName" : "John",
-            "lastName" : "Wayne_15",
+            "lastName" : "Wayne_100",
             "address" : "216 S. 2nd St.",
             "city" : "Winterset",
             "state" : "IA",
@@ -40,7 +40,7 @@
         },
         {
             "firstName" : "Bugs",
-            "lastName" : "Bunny_15",
+            "lastName" : "Bunny_100",
             "address" : "1 Looney Toones Way",
             "city" : "Los Angeles",
             "state" : "CA",

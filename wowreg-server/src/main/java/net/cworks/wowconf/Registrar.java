@@ -9,6 +9,7 @@
  */
 package net.cworks.wowconf;
 
+import net.cworks.Log;
 import net.cworks.json.JsonArray;
 import net.cworks.json.JsonObject;
 import net.cworks.wowreg.db.WowRegDb;
@@ -33,10 +34,7 @@ final public class Registrar {
      * @return the newly registered attendee as a JsonObject
      */
     public JsonObject register(JsonObject attendee) {
-        WowRegDb db = db();
-
-        // TODO validate attendee here...yeah right.
-        validateAttendee(attendee);
+        WowRegDb db = WowRegDb.db();
 
         // create attendee records so we know who wants to attend
         attendee = db.createAttendee(attendee);
@@ -65,22 +63,22 @@ final public class Registrar {
             .string("metaType", "string").build();
         db.createAttendeeMeta(attendeeMeta);
 
-        close(db);
-
         if(attendee.getInteger("id") == null) {
             return null;
         }
+
         return attendee;
     }
 
     /**
      * Register a group of attendees - TODO need to compute and insert ATTENDEE.total_price
      * @param attendees
-     * @return
+     * @return the registration group
      */
-    public int register(JsonArray attendees) {
-        WowRegDb db = db();
+    public JsonObject register(JsonArray attendees) {
+        WowRegDb db = WowRegDb.db();
         int registrationCount = 0;
+        JsonObject groupInfo = null;
         try {
 
             //
@@ -89,11 +87,13 @@ final public class Registrar {
             Iterator it = attendees.iterator();
             boolean hasPoc = false;
             JsonObject group = null;
+            JsonArray groupAttendees = Json().array().build();
             while (it.hasNext()) {
                 JsonObject attendee = (JsonObject) it.next();
                 if (attendee.getBoolean("poc")) {
                     // register this attendee and mark this attendee as a group point-of-contact
-                    if(register(attendee) == null) {
+                    attendee = register(attendee);
+                    if(attendee == null) {
                         throw new RuntimeException("Cannot create poc attendee");
                     }
                     registrationCount++;
@@ -110,6 +110,18 @@ final public class Registrar {
                         .number("groupId", group.getInteger("id")).build();
                     // add registered attendee to the group
                     db.createAttendeeToAttendeeGroup(attendeeToAttendeeGroup);
+
+                    JsonObject pocAttendee = Json().object().number("attendeeId", attendee.getInteger("id"))
+                            .string("firstName", attendee.getString("firstName"))
+                            .string("lastName", attendee.getString("lastName"))
+                            .string("email", attendee.getString("email"))
+                            .bool("poc", true).build();
+                    groupAttendees.add(pocAttendee);
+
+                    // construct groupInfo which is what we return from this method
+                    groupInfo = Json().object().number("groupId", group.getInteger("id"))
+                        .number("pocId", group.getInteger("pocId"))
+                        .string("groupName", group.getString("groupName")).build();
 
                     break;
                 }
@@ -132,79 +144,58 @@ final public class Registrar {
                 if(attendee.getBoolean("poc", false)) {
                     continue; // we've already inserted the group point-of-contact above
                 }
-                if(register(attendee) != null) {
+                attendee = register(attendee);
+                if(attendee != null) {
                     registrationCount++;
                     JsonObject attendeeToAttendeeGroup = Json().object()
                         .number("attendeeId", attendee.getInteger("id"))
                         .number("groupId", group.getInteger("id")).build();
                     // add registered attendee to the group
                     db.createAttendeeToAttendeeGroup(attendeeToAttendeeGroup);
+                    JsonObject groupAttendee = Json().object().number("attendeeId", attendee.getInteger("id"))
+                        .string("firstName", attendee.getString("firstName"))
+                        .string("lastName", attendee.getString("lastName"))
+                        .string("email", attendee.getString("email")).build();
+                    groupAttendees.add(groupAttendee);
                 }
             }
-
-        } finally {
-            close(db);
+            // add group attendees to groupInfo
+            groupInfo.setArray("groupAttendees", groupAttendees);
+            groupInfo.setNumber("groupSize", registrationCount);
+        } catch(Exception ex) {
+            Log.log.error("exception in register() ", ex);
         }
 
-        return registrationCount;
+        return groupInfo;
     }
 
+    /**
+     * Cancel a registration given a paypal token
+     * 1. update paypal_payment_info.paypal_state = cancelled
+     * 2. update each attendee in group to have a payment_status = cancelled
+     * @param token
+     * @return
+     */
+    public JsonArray cancel(String token) {
 
-    public JsonObject registrationUpdate(JsonObject attendee) {
+        WowRegDb db = WowRegDb.db();
+        JsonArray cancelledAttendees = Json().array().build();
 
-        // validate attendee
-        validateAttendee(attendee);
+        Integer status = db.updatePayPalPaymentInfoCancelled(token);
 
-        WowRegDb db = db();
-        JsonObject targetAttendee = db.retrieveAttendee(attendee);
-        JsonObject targetAttendeeCost = db.retrieveAttendeeCost(attendee);
-        JsonArray targetAttendeeMeta = db.retrieveAttendeeMeta(attendee);
-        db.updateAttendee(attendee);
+        if(status == 1) {
 
-        return null;
+            JsonArray attendees =db.retrieveGroupFromPaypalToken(token);
+            Iterator it = attendees.iterator();
+            while(it.hasNext()) {
+                JsonObject attendee = (JsonObject)it.next();
+                status = db.updateAttendeeToCancelled(attendee);
+                if(status == 1) {
+                    cancelledAttendees.addObject(attendee);
+                }
+            }
+        }
 
-    }
-
-    private void validateAttendee(JsonObject attendee) {
-
-        attendee.getString("firstName");
-        attendee.getString("lastName");
-        attendee.getBoolean("poc"); // optional
-
-    }
-
-    int recordCosts(JsonObject attendee) {
-        WowRegDb db = db();
-
-        close(db);
-        return 0;
-    }
-
-    int recordCosts(JsonArray attendees) {
-        WowRegDb db = db();
-
-        close(db);
-        return 0;
-    }
-
-    int recordAgeClass(JsonObject attendee) {
-        WowRegDb db = db();
-
-        close(db);
-        return 0;
-    }
-
-    int recordAgeClass(JsonArray attendees) {
-        WowRegDb db = db();
-
-        close(db);
-        return 0;
-    }
-
-    private WowRegDb db() {
-        return WowRegDb.db("root", "", "jdbc:mysql://localhost:3306/wowreg");
-    }
-
-    private void close(WowRegDb db) {
+        return cancelledAttendees;
     }
 }

@@ -14,6 +14,7 @@ import net.cworks.json.JsonElement;
 import net.cworks.json.JsonObject;
 import net.cworks.json.builder.JsonObjectBuilder;
 import net.cworks.wowreg.ISODateParser;
+import net.cworks.wowserver.ErrorCodes;
 import net.cworks.wowserver.ex.HttpServiceException;
 import spark.Request;
 import spark.Response;
@@ -87,6 +88,8 @@ public abstract class JsonResponseRoute extends ResponseTransformerRoute {
             } else {
                 responseData = errorResponse(ex.getMessage());
             }
+        } finally {
+            response.header("Access-Control-Allow-Origin", request.headers("Origin"));
         }
 
         return responseData;
@@ -101,6 +104,14 @@ public abstract class JsonResponseRoute extends ResponseTransformerRoute {
     public abstract JsonElement handleRequest(Request request, Response response);
 
     /**
+     * Build a simple 200 success response body
+     * @return
+     */
+    protected JsonObject successBody() {
+        return responseBody(null);
+    }
+
+    /**
      * Build a general response body
      * @param content
      * @return
@@ -110,10 +121,12 @@ public abstract class JsonResponseRoute extends ResponseTransformerRoute {
             .number("httpStatus", 200)
             .string("datetime", ISODateParser.toString(new Date()))
             .string("requestId", requestId());
-        if(content.isObject()) {
-            builder.object("response", (JsonObject)content);
-        } else if(content.isArray()) {
-            builder.array("response", (JsonArray)content);
+        if(content != null) {
+            if(content.isObject()) {
+                builder.object("response", (JsonObject)content);
+            } else if(content.isArray()) {
+                builder.array("response", (JsonArray)content);
+            }
         }
 
         return builder.build();
@@ -126,8 +139,60 @@ public abstract class JsonResponseRoute extends ResponseTransformerRoute {
      * @return
      */
     protected JsonObject errorResponse(Integer httpStatus, String message) {
+
+        return errorResponse(httpStatus, ErrorCodes.DEFAULT, message);
+
+    }
+
+    /**
+     * Build a general error response body
+     * @param httpStatus
+     * @param errorContent
+     * @return
+     */
+    protected JsonObject errorResponse(Integer httpStatus, JsonElement errorContent) {
+        return errorResponse(httpStatus, ErrorCodes.DEFAULT, errorContent);
+    }
+
+    /**
+     * Build a general error response body
+     * @param httpStatus
+     * @param errorCode
+     * @param errorContent
+     * @return
+     */
+    protected JsonObject errorResponse(Integer httpStatus,
+        Integer errorCode,
+        JsonElement errorContent) {
+
+        JsonObjectBuilder builder = Json().object()
+            .number("httpStatus", httpStatus)
+            .number("errorCode", errorCode)
+            .string("datetime", ISODateParser.toString(new Date()))
+            .string("requestId", requestId());
+
+        if(errorContent != null) {
+            if(errorContent.isObject()) {
+                builder.object("error", (JsonObject)errorContent);
+            } else if(errorContent.isArray()) {
+                builder.array("error", (JsonArray)errorContent);
+            }
+        }
+
+        return builder.build();
+    }
+
+    /**
+     * generate a general error response
+     * @param httpStatus
+     * @param errorCode
+     * @param message
+     * @return
+     */
+    protected JsonObject errorResponse(Integer httpStatus, Integer errorCode, String message) {
         JsonObject error = Json().object()
             .string("error", message)
+            .number("errorCode", errorCode)
             .number("httpStatus", httpStatus).build();
         return error;
     }

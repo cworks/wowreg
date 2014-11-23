@@ -1,51 +1,42 @@
+buildscript {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        jcenter()
+    }
+    dependencies {
+        classpath 'org.hidetake:gradle-ssh-plugin:0.4.3'
+    }
+}
+
 allprojects {
+
+    apply plugin: 'java'
+    apply plugin: 'idea'
+    apply plugin: 'maven'
+    apply plugin: 'org.hidetake.ssh'
 
     /*
      * Default group of all projected managed by this build
      */
     group = 'net-cworks'
 
-    buildscript {
-        /*
-         * The repositories here are for resolving plugins required for the build
-         * not for resolving dependencies of the code, although the repositories
-         * are virtualy the same for both.
-         */
-        repositories {
-            mavenLocal()
-            mavenCentral()
-        }
-    }
-
     /*
-     * Repositories that all projects managed by this use
+     * Repositories that all projects managed by this build use
      */
     repositories {
         mavenLocal()
-        mavenCentral()        
+        mavenCentral()
+        jcenter()
     }
 
     /*
-     * default plugins for java, IntelliJ and Eclipse IDE support
-     */
-    apply plugin: "java"
-    apply plugin: "idea"
-    apply plugin: "maven"
-
-    /*
-     * Controlled versions of 3rd-party libraries
-     */
-    ext.commonsLoggingVersion = "1.1.3"
-    ext.log4jVersion          = "1.2.17"
-    ext.junitVersion          = "4.11"
-
-    /*
-     * Actual dependencies available by default to all projects managed by this build
+     * Dependencies every project gets
      */
     dependencies {
-        compile("log4j:log4j:${log4jVersion}")
-        compile("commons-logging:commons-logging:${commonsLoggingVersion}")
-        testCompile("junit:junit:${junitVersion}")
+        compile("log4j:log4j:1.2.17")
+        compile("commons-logging:commons-logging:1.1.3")
+        testCompile("junit:junit:4.11")
     }
 
     /*
@@ -60,42 +51,68 @@ allprojects {
         targetCompatibility=1.7
     }
 
-
-    /**
-     * The option -Xlint can be used to enable or disable warnings.
-     * By saying -Xlint:<someOperation>, you enable all detailed warnings about <someOperation>
-     * By saying -Xlint:-<someOperation>, you disable all detailed warnings about <someOperation>
-     * see: http://argus.docs.oracle.com/javase/6/argus.docs/technotes/tools/windows/javac.html
-     *      http://argus.docs.oracle.com/javase/6/argus.docs/technotes/tools/solaris/javac.html
+    /*
+     * Global ssh settings
      */
-    [compileJava, compileTestJava]*.options*.compilerArgs = [
-            "-Xlint:-serial",
-            "-Xlint:-varargs",
-            "-Xlint:-cast",
-            "-Xlint:-classfile",
-            "-Xlint:-dep-ann",
-            "-Xlint:-divzero",
-            "-Xlint:-empty",
-            "-Xlint:-finally",
-            "-Xlint:-overrides",
-            "-Xlint:-path",
-            "-Xlint:-processing",
-            "-Xlint:-static",
-            "-Xlint:-try",
-            "-Xlint:-deprecation",
-            "-Xlint:-options",
-            "-Xlint:-fallthrough",
-            "-Xlint:-rawtypes",
-            "-Xlint:-unchecked"
-    ]
+    ssh.settings {
+        logging = 'stdout'
+        pty = true
+    }
 
+    /*
+     * Remote hosts that we can deploy to
+     */
+    remotes {
+        localhost {
+            host = 'localhost'
+            user = System.properties['user.name']
+            identity = file("${System.properties['user.home']}/.ssh/id_rsa")
+        }
+
+        wowHost {
+            host = '54.186.67.102'
+            user = 'ec2-user'
+            identity = file("${System.properties['user.home']}/.ssh/cworksec2.pem")
+        }
+    }
+
+    task copyLibs(type: Copy) {
+        into "$buildDir/libs"
+        from configurations.runtime
+    }
 }
 
-task wrapper(type: Wrapper, description: 'Generates the gradle wrapper.') {
-    gradleVersion = '1.11'
+
+task deploy << {
+    ssh.run {
+        session(remotes.wowHost) {
+            execute('mkdir wowreg')
+            execute('mkdir wowreg/libs')
+
+            def depSet = [] as Set
+            FileTree tree = fileTree(dir: 'wowreg-db/build/libs')
+            tree.each{File file -> depSet.add(file) }
+            tree = fileTree(dir: 'wowreg-server/build/libs')
+            tree.each{File file -> depSet.add(file) }
+
+            depSet.each() { file ->
+                put(file, 'wowreg/libs/' + file.getName())
+                println('uploaded: ' + 'wowreg/libs/' + file.getName())
+            };
+
+            execute('mkdir wowreg/conf')
+            execute('mkdir wowreg/conf/paypal')
+            put('wowreg-server/build/resources/main/sdk_config.properties',
+                'wowreg/conf/paypal/sdk_config.properties')
+
+            put('wowreg-server/build/resources/main/wow.sh',
+                'wowreg/wow.sh')
+
+            execute('chmod 755 wowreg/wow.sh')
+        }
+    }
 }
 
-
-
-
-
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.1'
+}

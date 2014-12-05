@@ -417,13 +417,23 @@ public final class WowRegDb {
      * @param attendeeCost
      */
     public void createAttendeeCost(JsonObject attendeeCost) {
-        int status = 0;
+
         try {
-            status = context.insertInto(ATTENDEE_COST,
+            int status = context.insertInto(ATTENDEE_COST,
                 ATTENDEE_COST.ATTENDEE_ID,
-                ATTENDEE_COST.EVENT_PRICES_ID).values(
-                attendeeCost.getInteger("attendeeId"),
-                attendeeCost.getInteger("eventPricesId")
+                ATTENDEE_COST.SHIRT_SIZE,
+                ATTENDEE_COST.SHIRT_COST,
+                ATTENDEE_COST.ROOM_COST,
+                ATTENDEE_COST.DONATION_COST,
+                ATTENDEE_COST.AGE_CLASS,
+                ATTENDEE_COST.TOTAL_COST).values(
+                attendeeCost.getInteger("attendee_id"),
+                attendeeCost.getString("shirt_size", "None"),
+                attendeeCost.getInteger("shirt_cost", 0),
+                attendeeCost.getInteger("room_cost"),
+                attendeeCost.getInteger("donation_cost", 0),
+                attendeeCost.getString("age_class"),
+                attendeeCost.getInteger("total_cost")
             ).execute();
             if (status != 1) {
                 throw new DbCreateException("Error creating attendeeCost record for: "

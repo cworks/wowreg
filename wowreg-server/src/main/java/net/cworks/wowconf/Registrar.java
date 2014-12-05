@@ -43,17 +43,8 @@ final public class Registrar {
         }
 
         // create attendee cost records so we know how much the attendee owes
-        JsonArray items = attendee.getArray("items");
-        if(items != null && items.size() > 0) {
-            JsonArray eventPrices = db.retrieveEventPrices(items);
-            for (int i = 0; i < eventPrices.size(); i++) {
-                JsonObject eventPrice = eventPrices.get(i);
-                JsonObject attendeeCost = Json().object()
-                    .number("attendeeId", attendee.getNumber("id"))
-                    .number("eventPricesId", eventPrice.getNumber("id")).build();
-                db.createAttendeeCost(attendeeCost);
-            }
-        }
+        createAttendeeCostRecord(db, attendee);
+
         // create attendeeMeta record to persist special info such as the ageClass of attendee
         String ageClass = attendee.getString("ageClass", "adult");
         JsonObject attendeeMeta = Json().object()
@@ -197,5 +188,57 @@ final public class Registrar {
         }
 
         return cancelledAttendees;
+    }
+
+    /**
+     * Given an attendee create an AttendeeCost record
+     * @param attendee
+     */
+    private void createAttendeeCostRecord(WowRegDb db, JsonObject attendee) {
+
+        JsonObject costRecord = Json().object().build();
+
+        // has shirt?
+        String shirtSize = attendee.getString("shirtSize");
+        if(shirtSize != null) {
+            costRecord.setString("shirt_size", shirtSize);
+        }
+        Integer shirtCost = attendee.getInteger("shirtCost");
+        if(shirtCost != null && shirtCost > 0) {
+            costRecord.setNumber("shirt_cost", shirtCost * 100);
+        }
+
+        // has donation?
+        Integer donation = attendee.getInteger("donationCost");
+        if(donation != null && donation > 0) {
+            costRecord.setNumber("donation_cost", donation * 100);
+        }
+
+        // has room?
+        Integer room = attendee.getInteger("room");
+        if(room != null && room > 0) {
+            costRecord.setNumber("room_cost", room * 100);
+        }
+
+        // has total?
+        Integer total = attendee.getInteger("cost");
+        if(room != null && room > 0) {
+            costRecord.setNumber("total_cost", total * 100);
+        }
+
+        // has ageClass?
+        String ageClass = attendee.getString("ageClass");
+        if(ageClass != null && ageClass.trim().length() < 32) {
+            costRecord.setString("age_class", ageClass.trim());
+        }
+
+        // has id?  (better)
+        Integer id = attendee.getInteger("id");
+        if(id != null && id > 0) {
+            costRecord.setNumber("attendee_id", id);
+        }
+
+        db.createAttendeeCost(costRecord);
+
     }
 }

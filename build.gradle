@@ -70,9 +70,9 @@ allprojects {
         }
 
         wowHost {
-            host = '54.186.67.102'
-            user = 'ec2-user'
-            identity = file("${System.properties['user.home']}/.ssh/cworksec2.pem")
+            host = 'X.X.X.X'
+            user = 'X'
+            identity = file("${System.properties['user.home']}/.ssh/X.pem")
         }
     }
 

@@ -22,7 +22,6 @@ import static spark.Spark.post;
 
 public class AttendeesApi extends CoreApi {
 
-
     public void start() {
 
         final WowRegDb db = WowRegDb.db();

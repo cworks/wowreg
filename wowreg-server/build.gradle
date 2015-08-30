@@ -4,7 +4,6 @@ dependencies {
     compile("com.sparkjava:spark-core:1.1.1")
     compile("com.paypal.sdk:rest-api-sdk:0.9.1")
     compile("commons-lang:commons-lang:2.6")
-    compile("net-cworks:json:1.1")
     compile("net-cworks:http:1.0")
     compile(project(":wowreg-db"))
 }

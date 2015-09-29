@@ -1,5 +1,0 @@
-description "wowreg-db - Wow Registration database project"
-
-dependencies {
-    compile("org.mongodb.morphia:morphia:1.0.1")
-}
